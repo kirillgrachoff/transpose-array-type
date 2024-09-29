@@ -11,12 +11,13 @@ pub fn Transpose(Seq: type) type {
     };
     var fields: [info.fields.len]builtin.Type.StructField = undefined;
     inline for (info.fields, 0..) |field, i| {
+        const newType = array.fillWith(field.type);
         fields[i] = builtin.Type.StructField{
             .name = field.name,
-            .type = array.fillWith(field.type),
+            .type = newType.@"type",
             .default_value = null,
             .is_comptime = false,
-            .alignment = field.alignment,
+            .alignment = newType.alignment,
         };
     }
     const Ans: std.builtin.Type = .{ .Struct = .{
@@ -35,7 +36,10 @@ pub fn ArrayKind(Seq: type) type {
             pub const child: type = array.child;
             pub const len = array.len;
             pub fn fillWith(T: type) type {
-                return [len]T;
+                return struct {
+                    pub const @"type": type = [len]T;
+                    pub const alignment = @alignOf(@"type");
+                };
             }
         },
         else => @compileError("unsupported type"),
@@ -50,7 +54,7 @@ test "array kind" {
     const info = ArrayKind([10]i32);
     try testing.expect(info.child == i32);
     try testing.expect(info.len == 10);
-    try testing.expect(ChildType(info.fillWith(u31)) == u31);
+    try testing.expect(ChildType(info.fillWith(u31).@"type") == u31);
 }
 
 test "transpose" {
