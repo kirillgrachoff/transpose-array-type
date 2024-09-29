@@ -1,5 +1,5 @@
 const std = @import("std");
-const t = @import("./transpose.zig");
+const t = @import("transpose");
 
 const Point = struct {
     x: i64,
