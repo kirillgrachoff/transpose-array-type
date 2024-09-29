@@ -9,7 +9,16 @@ pub fn Transpose(Seq: type) type {
         .Struct => |s| s,
         else => @compileError("unsupported type"),
     };
-    const fields = comptime MapFields(info.fields, array);
+    var fields: [info.fields.len]builtin.Type.StructField = undefined;
+    inline for (info.fields, 0..) |field, i| {
+        fields[i] = builtin.Type.StructField{
+            .name = field.name,
+            .type = array.fillWith(field.type),
+            .default_value = null,
+            .is_comptime = false,
+            .alignment = field.alignment,
+        };
+    }
     const Ans: std.builtin.Type = .{ .Struct = .{
         .decls = info.decls,
         .fields = &fields,
@@ -17,23 +26,6 @@ pub fn Transpose(Seq: type) type {
         .is_tuple = false,
     } };
     return @Type(Ans);
-}
-
-fn MapFields(comptime fields: []const builtin.Type.StructField, array: type) [fields.len]builtin.Type.StructField {
-    if (fields.len == 0) {
-        return [0]builtin.Type.StructField{};
-    }
-
-    const field = fields[0];
-    const newField = [1]builtin.Type.StructField{.{
-        .name = field.name,
-        .type = array.fillWith(field.type),
-        .default_value = null,
-        .is_comptime = false,
-        .alignment = field.alignment,
-    }};
-    const newFields = MapFields(fields[1..], array);
-    return newField ++ newFields;
 }
 
 pub fn ArrayKind(Seq: type) type {
@@ -96,8 +88,8 @@ test "transpose" {
         try testing.expect(e.type == a.type);
         try testing.expect(e.is_comptime == a.is_comptime);
     }
-    // testing.expectEqualDeep(expected, actual) catch |err| {
-    //     std.debug.print("ERROR: types are not equal, I don't know why\n", .{});
-    //     return err;
-    // };
+    comptime testing.expectEqualDeep(@typeInfo(expected), @typeInfo(actual)) catch |err| {
+        std.debug.print("ERROR: types are not equal, I don't know why\n", .{});
+        return err;
+    };
 }
