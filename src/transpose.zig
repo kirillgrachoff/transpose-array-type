@@ -6,21 +6,21 @@ pub fn Transpose(Seq: type) type {
     const array = ArrayKind(Seq);
     const T = array.child;
     const info = switch (@typeInfo(T)) {
-        .Struct => |s| s,
+        .@"struct" => |s| s,
         else => @compileError("unsupported type"),
     };
     var fields: [info.fields.len]builtin.Type.StructField = undefined;
     inline for (info.fields, 0..) |field, i| {
-        const newType = array.fillWith(field.type);
+        const new_type = array.fillWith(field.type);
         fields[i] = builtin.Type.StructField{
             .name = field.name,
-            .type = newType.@"type",
-            .default_value = null,
+            .type = new_type.@"type",
+            .default_value_ptr = null,
             .is_comptime = false,
-            .alignment = newType.alignment,
+            .alignment = new_type.alignment,
         };
     }
-    const Ans: std.builtin.Type = .{ .Struct = .{
+    const Ans: std.builtin.Type = .{ .@"struct" = .{
         .decls = info.decls,
         .fields = &fields,
         .layout = .auto,
@@ -32,7 +32,7 @@ pub fn Transpose(Seq: type) type {
 pub fn ArrayKind(Seq: type) type {
     const info = @typeInfo(Seq);
     return switch (info) {
-        .Array => |array| struct {
+        .array => |array| struct {
             pub const child: type = array.child;
             pub const len = array.len;
             pub fn fillWith(T: type) type {
@@ -78,8 +78,8 @@ test "transpose" {
     try testing.expect(ChildType(@TypeOf(obj.x)) == i32);
     try testing.expect(ChildType(@TypeOf(obj.y)) == u64);
     try testing.expect(ArrayKind(inputType).child == T);
-    const eI = @typeInfo(expected).Struct;
-    const aI = @typeInfo(actual).Struct;
+    const eI = @typeInfo(expected).@"struct";
+    const aI = @typeInfo(actual).@"struct";
     try testing.expect(eI.fields.len == aI.fields.len);
     try testing.expect(eI.backing_integer == aI.backing_integer);
     try testing.expectEqual(eI.decls, aI.decls);
@@ -88,7 +88,7 @@ test "transpose" {
     inline for (eI.fields, aI.fields) |e, a| {
         try testing.expectEqualStrings(e.name, a.name);
         try testing.expect(e.alignment == a.alignment);
-        try testing.expect(e.default_value == a.default_value);
+        try testing.expect(e.default_value_ptr == a.default_value_ptr);
         try testing.expect(e.type == a.type);
         try testing.expect(e.is_comptime == a.is_comptime);
     }
